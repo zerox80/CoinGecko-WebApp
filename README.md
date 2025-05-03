@@ -40,11 +40,9 @@ Here's how to get this project up and running on your local machine.
 
 1.  **Clone the repository:**
     ```bash
-    git clone [Your Repository URL Here]
-    cd CoinGeckoWebApp
+    git clone https://github.com/zerox80/CoinGecko-WebApp.git
+    cd CoinGecko-WebApp
     ```
-    *(Replace `[Your Repository URL Here]` with the actual URL if you put it on GitHub/GitLab)*
-
 2.  **Build the project with Maven:**
     Open your terminal in the project root directory and run:
     ```bash
