@@ -28,7 +28,7 @@ public class CoinGeckoApiClient {
         this.objectMapper = objectMapper;
     }
 
-    public String getSimplePrice(String[] coinIds, String vsCurrency) {
+   /* public String getSimplePrice(String[] coinIds, String vsCurrency) {
         String idsString = String.join(",", coinIds);
         String url = String.format("%s/simple/price?ids=%s&vs_currencies=%s&include_24hr_change=true",
                 API_BASE_URL, idsString, vsCurrency);
@@ -53,6 +53,8 @@ public class CoinGeckoApiClient {
             return null;
         }
     }
+    */
+
 
     public List<CryptoCurrency> getCoins(String vsCurrency, int count) {
         String url = String.format("%s/coins/markets?vs_currency=%s&order=market_cap_desc&per_page=%d&page=1&sparkline=false&price_change_percentage=24h",

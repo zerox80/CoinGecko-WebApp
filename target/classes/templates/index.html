@@ -52,16 +52,16 @@
                     <p class="card-text">
                         <strong>Market Cap:</strong>
                         <span th:switch="true">
-                                <span th:case="${coin.marketCap >= 1000000000}"
-                                      th:text="${#numbers.formatDecimal(coin.marketCap / 1000000000, 1, 2) + ' B ' + currency.toUpperCase()}">
-                                </span>
-                                <span th:case="${coin.marketCap >= 1000000}"
-                                      th:text="${#numbers.formatDecimal(coin.marketCap / 1000000, 1, 2) + ' M ' + currency.toUpperCase()}">
-                                </span>
-                                <span th:case="*"
-                                      th:text="${#numbers.formatDecimal(coin.marketCap, 1, 0) + ' ' + currency.toUpperCase()}">
-                                </span>
+                            <span th:case="${coin.marketCap >= 1000000000}"
+                                  th:text="${#numbers.formatDecimal(coin.marketCap / 1000000000, 1, 2) + ' B ' + currency.toUpperCase()}">
                             </span>
+                            <span th:case="${coin.marketCap >= 1000000}"
+                                  th:text="${#numbers.formatDecimal(coin.marketCap / 1000000, 1, 2) + ' M ' + currency.toUpperCase()}">
+                            </span>
+                            <span th:case="*"
+                                  th:text="${#numbers.formatDecimal(coin.marketCap, 1, 0) + ' ' + currency.toUpperCase()}">
+                            </span>
+                        </span>
                     </p>
                 </div>
             </div>
