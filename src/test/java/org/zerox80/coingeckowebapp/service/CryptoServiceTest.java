@@ -28,18 +28,35 @@ class CryptoServiceTest {
         String currency = "eur";
         int count = 5;
         List<CryptoCurrency> mockCoins = new ArrayList<>();
-        CryptoCurrency bitcoin = new CryptoCurrency();
-        bitcoin.setId("bitcoin");
-        bitcoin.setName("Bitcoin");
+
+        // HIER IST DIE WICHTIGE ÄNDERUNG:
+        // Erstelle das CryptoCurrency-Objekt mit dem neuen Konstruktor,
+        // der alle Argumente erwartet.
+        CryptoCurrency bitcoin = new CryptoCurrency(
+                "bitcoin",                  // id
+                "Bitcoin",                  // name
+                "BTC",                      // symbol
+                50000.0,                    // currentPrice (Beispielwert)
+                2.5,                        // priceChangePercentage24h (Beispielwert)
+                1000000000000.0,            // marketCap (Beispielwert)
+                "http://example.com/btc.png" // image (Beispielwert)
+        );
+        // Die folgenden Zeilen sind nicht mehr nötig und würden Fehler verursachen,
+        // da es keine Setter mehr gibt und die Felder final sind:
+        // bitcoin.setId("bitcoin");
+        // bitcoin.setName("Bitcoin");
         mockCoins.add(bitcoin);
 
+        // Der Rest des Tests kann wahrscheinlich so bleiben:
         when(apiClient.getCoins(currency, count)).thenReturn(mockCoins);
 
         List<CryptoCurrency> actualCoins = cryptoService.getTopCryptocurrencies(currency, count);
 
         assertNotNull(actualCoins);
         assertEquals(mockCoins.size(), actualCoins.size());
-        assertEquals(mockCoins.get(0).getName(), actualCoins.get(0).getName());
+        // Stelle sicher, dass du auf Eigenschaften zugreifst, die du im Konstruktor gesetzt hast
+        assertEquals("Bitcoin", actualCoins.get(0).getName());
+        assertEquals("bitcoin", actualCoins.get(0).getId());
 
         verify(apiClient, times(1)).getCoins(currency, count);
     }
