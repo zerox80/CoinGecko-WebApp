@@ -21,6 +21,12 @@
             font-size: 1.5rem;
             font-weight: bold;
         }
+        .profit {
+            color: green;
+        }
+        .loss {
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -38,6 +44,7 @@
 
     <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
     <div th:if="${successMessage}" class="alert alert-success" role="alert" th:text="${successMessage}"></div>
+    <div th:if="${warningMessage}" class="alert alert-warning" role="alert" th:text="${warningMessage}"></div>
 
     <div th:if="${portfolio}">
         <div class="card mb-4">
@@ -46,39 +53,60 @@
             </div>
             <div class="card-body">
                 <p class="card-text">
-                    Current Balance: <span class="balance-highlight" th:text="${#numbers.formatDecimal(portfolio.balance, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}"></span>
+                    Cash Balance: <span class="balance-highlight" th:text="${#numbers.formatDecimal(userBalance, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolioCurrency}"></span>
+                </p>
+                <p class="card-text">
+                    Total Portfolio Value: <span class="balance-highlight" th:text="${#numbers.formatDecimal(totalPortfolioValue, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolioCurrency}"></span>
                 </p>
             </div>
         </div>
 
         <h4>My Crypto Assets</h4>
 
-        <th:block th:if="${portfolio != null && portfolio.entries != null}">
-            <div th:if="${#lists.size(portfolio.entries) == 0}" class="alert alert-info empty-portfolio" role="alert">
+        <th:block th:if="${portfolioAssets != null}">
+            <div th:if="${isPortfolioEmpty}" class="alert alert-info empty-portfolio" role="alert">
                 You do not own any crypto assets yet. Start by buying some from the market!
             </div>
 
-            <table class="table table-hover" th:unless="${#lists.size(portfolio.entries) == 0}">
+            <table class="table table-hover" th:unless="${isPortfolioEmpty}">
                 <thead class="thead-light">
                 <tr>
                     <th>Name</th>
                     <th>Symbol</th>
                     <th>Amount</th>
                     <th>Avg. Purchase Price</th>
+                    <th>Current Price</th>
+                    <th>Current Market Value</th>
+                    <th>Profit/Loss</th>
+                    <th>Profit/Loss (%)</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="entry : ${portfolio.entries}">
-                    <td th:text="${entry.cryptocurrencyName}">Bitcoin</td>
-                    <td th:text="${entry.cryptocurrencySymbol.toUpperCase()}">BTC</td>
-                    <td th:text="${#numbers.formatDecimal(entry.amount, 1, 8, 'COMMA')}">1.00000000</td>
-                    <td th:text="${#numbers.formatDecimal(entry.averagePurchasePrice, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}">50000.00 EUR</td>
+                <tr th:each="asset : ${portfolioAssets}">
+                    <td th:text="${asset.cryptocurrencyName}">Bitcoin</td>
+                    <td th:text="${asset.cryptocurrencySymbol.toUpperCase()}">BTC</td>
+                    <td th:text="${#numbers.formatDecimal(asset.amount, 1, 'POINT', 4, 'COMMA')}">1.0000</td>
+                    <td th:text="${#numbers.formatDecimal(asset.averagePurchasePrice, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolioCurrency}">50000.00 EUR</td>
+                    <td th:text="${#numbers.formatDecimal(asset.currentPrice, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolioCurrency}">60000.00 EUR</td>
+                    <td th:text="${#numbers.formatDecimal(asset.currentMarketValue, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolioCurrency}">60000.00 EUR</td>
+                    <td>
+                        <span th:if="${asset.profitOrLoss != null}" 
+                              th:text="${#numbers.formatDecimal(asset.profitOrLoss, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolioCurrency}" 
+                              th:class="${asset.profitOrLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'profit' : 'loss'}">10000.00 EUR</span>
+                        <span th:unless="${asset.profitOrLoss != null}">N/A</span>
+                    </td>
+                    <td>
+                        <span th:if="${asset.profitOrLossPercentage != null}" 
+                              th:text="${#numbers.formatDecimal(asset.profitOrLossPercentage, 1, 'POINT', 2, 'COMMA')} + ' %'" 
+                              th:class="${asset.profitOrLossPercentage.compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'profit' : 'loss'}">20.00 %</span>
+                        <span th:unless="${asset.profitOrLossPercentage != null}">N/A</span>
+                    </td>
                 </tr>
                 </tbody>
             </table>
         </th:block>
         
-        <th:block th:if="${portfolio == null || portfolio.entries == null}">
+        <th:block th:if="${portfolioAssets == null}">
              <div class="alert alert-warning" role="alert">
                 Portfolio data is currently unavailable or incomplete.
             </div>

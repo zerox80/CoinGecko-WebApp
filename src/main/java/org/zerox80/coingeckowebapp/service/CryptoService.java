@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class CryptoService {
@@ -21,5 +22,15 @@ public class CryptoService {
     public Mono<List<CryptoCurrency>> getTopCryptocurrencies(String currency, int count) {
         logger.info("Fetching from API for: {}, Count: {}", currency, count);
         return apiClient.getCoins(currency, count);
+    }
+
+    @Cacheable(value="currentPrices", key = "T(String).join(',', #coinIds) + '-' + #currency")
+    public Mono<Map<String, Map<String, Double>>> getCurrentPrices(List<String> coinIds, String currency) {
+        if (coinIds == null || coinIds.isEmpty()) {
+            logger.warn("Attempted to fetch current prices with null or empty coinIds list.");
+            return Mono.just(Map.of()); // Return empty map if no IDs provided
+        }
+        logger.info("Fetching current prices from API for coin IDs: {} in currency: {}", coinIds, currency);
+        return apiClient.getPricesForIds(coinIds, currency);
     }
 }

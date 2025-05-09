@@ -8,12 +8,14 @@ import org.zerox80.coingeckowebapp.model.CryptoCurrency;
 import reactor.util.retry.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.scheduler.Schedulers;
+// import reactor.core.scheduler.Schedulers;
 
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.List;
 import reactor.core.publisher.Mono;
+import java.util.Map;
+import org.springframework.core.ParameterizedTypeReference;
 
 @Component
 public class CoinGeckoApiClient {
@@ -61,5 +63,28 @@ public class CoinGeckoApiClient {
                                 retrySignal.failure().getMessage()))
                 )
                 .doOnError(error -> logger.error("Failed to fetch data after retries from URL: {}. Error: {}", fullUrl, error.getMessage()));
+    }
+
+    public Mono<Map<String, Map<String, Double>>> getPricesForIds(List<String> coinIds, String vsCurrency) {
+        String ids = String.join(",", coinIds);
+        String path = "/simple/price?ids={ids}&vs_currencies={vsCurrency}";
+        String fullUrl = apiBaseUrl + path.replace("{ids}", ids).replace("{vsCurrency}", vsCurrency);
+        logger.info("Attempting to fetch prices from URL: {}", fullUrl);
+
+        return webClient.get()
+                .uri(path, ids, vsCurrency)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, clientResponse ->
+                    clientResponse.bodyToMono(String.class)
+                            .doOnNext(errorBody -> logger.error("API Error Response ({}): {} for URL {}", clientResponse.statusCode(), errorBody, fullUrl))
+                            .flatMap(errorBody -> Mono.error(new RuntimeException("API call failed with status " + clientResponse.statusCode() + ": " + errorBody + " for URL " + fullUrl)))
+                )
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Map<String, Double>>>() {})
+                .retryWhen(Retry.fixedDelay(maxRetries, Duration.ofMillis(retryDelayMs))
+                        .doBeforeRetry(retrySignal -> logger.warn("Retrying API call for prices, attempt #{}. Cause: {} for URL: {}",
+                                retrySignal.totalRetries() + 1,
+                                retrySignal.failure().getMessage(), fullUrl))
+                )
+                .doOnError(error -> logger.error("Failed to fetch prices after retries from URL: {}. Error: {}", fullUrl, error.getMessage()));
     }
 }
