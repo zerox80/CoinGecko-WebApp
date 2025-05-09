@@ -1,6 +1,5 @@
 # My Crypto Price Viewer Project
-![Screenshot 2025-05-09 221135](https://github.com/user-attachments/assets/a82b96b7-91d6-454a-bdf9-c52b8f827fc4)
-
+![image](https://github.com/user-attachments/assets/4e398272-fae4-4e9e-af80-f84236f723b2)
 
 Hey there! 👋
 
@@ -60,7 +59,7 @@ You can run the Spring Boot application directly from your IDE or using Maven.
 #### From your IDE
 
 - Open the project in your IDE.
-- Find the main application class (`CoinGeckoWebAppApplication.java` in `src/main/java/org/zerox80/coingeckowebapp`).
+- Find the main application class (`CoinGeckoWebAppApplication.java` in `src/main/java/org/example/coingeckowebapp`).
 - Right-click on it and select "Run 'CoinGeckoWebAppApplication.main()'".
 
 #### Using Maven

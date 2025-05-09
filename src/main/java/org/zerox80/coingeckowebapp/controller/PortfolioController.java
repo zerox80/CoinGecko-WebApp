@@ -11,14 +11,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.server.ServerWebExchange;
 import org.zerox80.coingeckowebapp.model.Portfolio;
-import org.zerox80.coingeckowebapp.model.User;
+import org.zerox80.coingeckowebapp.model.PortfolioEntry;
+import org.zerox80.coingeckowebapp.model.PortfolioEntryViewModel;
+// import org.zerox80.coingeckowebapp.model.User;
 import org.zerox80.coingeckowebapp.service.PortfolioService;
 import org.zerox80.coingeckowebapp.service.UserService;
+import org.zerox80.coingeckowebapp.service.CryptoService;
 import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Controller
 @RequestMapping("/portfolio")
@@ -27,10 +35,12 @@ public class PortfolioController {
     private static final Logger logger = LoggerFactory.getLogger(PortfolioController.class);
     private final PortfolioService portfolioService;
     private final UserService userService;
+    private final CryptoService cryptoService;
 
-    public PortfolioController(PortfolioService portfolioService, UserService userService) {
+    public PortfolioController(PortfolioService portfolioService, UserService userService, CryptoService cryptoService) {
         this.portfolioService = portfolioService;
         this.userService = userService;
+        this.cryptoService = cryptoService;
     }
 
     @GetMapping
@@ -53,27 +63,83 @@ public class PortfolioController {
                         logger.error("Authenticated user {} not found in database.", userDetails.getUsername());
                         model.addAttribute("errorMessage", "User not found. Please login again.");
                         model.addAttribute("isPortfolioEmpty", true);
+                        model.addAttribute("portfolioAssets", new ArrayList<PortfolioEntryViewModel>());
+                        model.addAttribute("totalPortfolioValue", BigDecimal.ZERO);
                         return Mono.just("redirect:/login?error=userNotFound");
                     }
                     try {
                         Portfolio portfolio = portfolioService.getPortfolioForUser(user);
                         model.addAttribute("portfolio", portfolio);
-                        
-                        boolean isPortfolioEmpty = true;
-                        if (portfolio != null) {
-                            isPortfolioEmpty = portfolio.getEntries().isEmpty();
-                            model.addAttribute("userBalance", portfolio.getBalance());
-                            model.addAttribute("portfolioCurrency", portfolio.getCurrency());
-                            model.addAttribute("portfolioEntries", portfolio.getEntries()); 
+
+                        List<PortfolioEntryViewModel> portfolioAssets = new ArrayList<>();
+                        BigDecimal totalCryptoValue = BigDecimal.ZERO;
+
+                        if (portfolio != null && !portfolio.getEntries().isEmpty()) {
+                            List<String> coinIds = portfolio.getEntries().stream()
+                                    .map(PortfolioEntry::getCryptocurrencyId)
+                                    .distinct()
+                                    .collect(Collectors.toList());
+
+                            return cryptoService.getCurrentPrices(coinIds, portfolio.getCurrency().toLowerCase())
+                                .map(prices -> {
+                                    BigDecimal currentTotalCryptoValue = BigDecimal.ZERO;
+                                    for (PortfolioEntry entry : portfolio.getEntries()) {
+                                        Map<String, Double> priceData = prices.get(entry.getCryptocurrencyId());
+                                        BigDecimal currentPrice = BigDecimal.ZERO;
+                                        if (priceData != null && priceData.containsKey(portfolio.getCurrency().toLowerCase())) {
+                                            currentPrice = BigDecimal.valueOf(priceData.get(portfolio.getCurrency().toLowerCase()));
+                                        }
+                                        PortfolioEntryViewModel viewModel = new PortfolioEntryViewModel(entry, currentPrice);
+                                        portfolioAssets.add(viewModel);
+                                        currentTotalCryptoValue = currentTotalCryptoValue.add(viewModel.getCurrentMarketValue());
+                                    }
+                                    model.addAttribute("portfolioAssets", portfolioAssets);
+                                    model.addAttribute("isPortfolioEmpty", portfolioAssets.isEmpty());
+                                    BigDecimal totalPortfolioValue = portfolio.getBalance().add(currentTotalCryptoValue);
+                                    model.addAttribute("totalPortfolioValue", totalPortfolioValue);
+                                    model.addAttribute("userBalance", portfolio.getBalance());
+                                    model.addAttribute("portfolioCurrency", portfolio.getCurrency());
+                                    return "portfolio";
+                                })
+                                .defaultIfEmpty("portfolio")
+                                .onErrorResume(priceError -> {
+                                    logger.error("Error fetching prices for portfolio for user {}: {}", user.getUsername(), priceError.getMessage(), priceError);
+                                    for (PortfolioEntry entry : portfolio.getEntries()) {
+                                        portfolioAssets.add(new PortfolioEntryViewModel(entry, BigDecimal.ZERO)); 
+                                    }
+                                    model.addAttribute("portfolioAssets", portfolioAssets);
+                                    model.addAttribute("isPortfolioEmpty", portfolioAssets.isEmpty());
+                                    BigDecimal fallbackTotalValue = portfolio.getBalance();
+                                    for(PortfolioEntryViewModel vm : portfolioAssets) {
+                                        fallbackTotalValue = fallbackTotalValue.add(vm.getCurrentMarketValue());
+                                    }
+                                    model.addAttribute("totalPortfolioValue", fallbackTotalValue);
+                                    model.addAttribute("userBalance", portfolio.getBalance());
+                                    model.addAttribute("portfolioCurrency", portfolio.getCurrency());
+                                    model.addAttribute("warningMessage", "Could not fetch current market prices. Displaying values based on purchase price or zero.");
+                                    return Mono.just("portfolio");
+                                });
+                        } else {
+                            model.addAttribute("portfolioAssets", portfolioAssets);
+                            model.addAttribute("isPortfolioEmpty", true);
+                            BigDecimal totalPortfolioValue = portfolio != null ? portfolio.getBalance() : BigDecimal.ZERO;
+                            model.addAttribute("totalPortfolioValue", totalPortfolioValue);
+                            if (portfolio != null) {
+                                model.addAttribute("userBalance", portfolio.getBalance());
+                                model.addAttribute("portfolioCurrency", portfolio.getCurrency());
+                            } else {
+                                model.addAttribute("userBalance", BigDecimal.ZERO);
+                                model.addAttribute("portfolioCurrency", "N/A");
+                            }
+                            return Mono.just("portfolio");
                         }
-                        model.addAttribute("isPortfolioEmpty", isPortfolioEmpty);
-                        
-                        return Mono.just("portfolio");
                     } catch (Exception e) {
                         logger.error("Error fetching portfolio for user {}: {}", user.getUsername(), e.getMessage(), e);
                         model.addAttribute("errorMessage", "Could not load your portfolio. Please try again later.");
                         model.addAttribute("portfolio", null);
+                        model.addAttribute("portfolioAssets", new ArrayList<PortfolioEntryViewModel>());
                         model.addAttribute("isPortfolioEmpty", true);
+                        model.addAttribute("totalPortfolioValue", BigDecimal.ZERO);
                         return Mono.just("portfolio");
                     }
                 })
@@ -81,7 +147,9 @@ public class PortfolioController {
                     logger.error("Unexpected error in viewPortfolio for user {}: {}", userDetails.getUsername(), e.getMessage(), e);
                     model.addAttribute("errorMessage", "An unexpected error occurred. Please try again later.");
                     model.addAttribute("portfolio", null);
+                    model.addAttribute("portfolioAssets", new ArrayList<PortfolioEntryViewModel>());
                     model.addAttribute("isPortfolioEmpty", true);
+                    model.addAttribute("totalPortfolioValue", BigDecimal.ZERO);
                     return Mono.just("portfolio");
                 });
     }
