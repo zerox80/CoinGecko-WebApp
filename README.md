@@ -60,7 +60,7 @@ You can run the Spring Boot application directly from your IDE or using Maven.
 #### From your IDE
 
 - Open the project in your IDE.
-- Find the main application class (`CoinGeckoWebAppApplication.java` in `src/main/java/org/example/coingeckowebapp`).
+- Find the main application class (`CoinGeckoWebAppApplication.java` in `src/main/java/org/zerox80/coingeckowebapp`).
 - Right-click on it and select "Run 'CoinGeckoWebAppApplication.main()'".
 
 #### Using Maven
