@@ -15,8 +15,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 @Component
 public class CoinGeckoApiClient {
 
@@ -36,33 +34,6 @@ public class CoinGeckoApiClient {
         this.httpClient = HttpClient.newHttpClient();
         this.objectMapper = objectMapper;
     }
-
-   /* public String getSimplePrice(String[] coinIds, String vsCurrency) {
-        String idsString = String.join(",", coinIds);
-        String url = String.format("%s/simple/price?ids=%s&vs_currencies=%s&include_24hr_change=true",
-                API_BASE_URL, idsString, vsCurrency);
-        try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                return response.body();
-            } else {
-                log.error("Error getting simple price: Status Code {}", response.statusCode());
-                log.error("Error response body: {}", response.body());
-                return null;
-            }
-        } catch (IOException | InterruptedException e) {
-            log.error("IOException/InterruptedException during simple price request", e);
-            Thread.currentThread().interrupt();
-            return null;
-        }
-    }
-    */
 
 
     public List<CryptoCurrency> getCoins(String vsCurrency, int count) {
