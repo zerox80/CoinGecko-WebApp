@@ -46,7 +46,7 @@
             </div>
             <div class="card-body">
                 <p class="card-text">
-                    Current Balance: <span class="balance-highlight" th:text="${#numbers.formatDecimal(portfolio.balance, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}"></span>
+                    Current Balance: <span class="balance-highlight" th:text="${#numbers.formatDecimal(portfolio.balance, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolio.currency}"></span>
                 </p>
             </div>
         </div>
@@ -71,8 +71,8 @@
                 <tr th:each="entry : ${portfolio.entries}">
                     <td th:text="${entry.cryptocurrencyName}">Bitcoin</td>
                     <td th:text="${entry.cryptocurrencySymbol.toUpperCase()}">BTC</td>
-                    <td th:text="${#numbers.formatDecimal(entry.amount, 1, 8, 'COMMA')}">1.00000000</td>
-                    <td th:text="${#numbers.formatDecimal(entry.averagePurchasePrice, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}">50000.00 EUR</td>
+                    <td th:text="${#numbers.formatDecimal(entry.amount, 1, 'POINT', 4, 'COMMA')}">1.00000000</td>
+                    <td th:text="${#numbers.formatDecimal(entry.averagePurchasePrice, 1, 'POINT', 2, 'COMMA')} + ' ' + ${portfolio.currency}">50000.00 EUR</td>
                 </tr>
                 </tbody>
             </table>
