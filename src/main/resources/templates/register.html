@@ -11,11 +11,9 @@
             <div class="card">
                 <div class="card-header">Register</div>
                 <div class="card-body">
-                    <!-- Fehlermeldung wird hier angezeigt, wenn das 'error' Attribut im Model vorhanden ist -->
                     <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
 
                     <form th:action="@{/register}" method="post">
-                        <!-- CSRF-Token - Thymeleaf fügt dieses automatisch ein, aber für die Sicherheit explizit hinzufügen -->
                         <input type="hidden" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" 
                                th:value="${_csrf != null ? _csrf.token : ''}"/>
                         

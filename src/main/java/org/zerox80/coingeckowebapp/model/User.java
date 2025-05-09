@@ -7,7 +7,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "users")
 @Getter
-@Setter // Lombok Setter hinzugefügt, um die Rolle setzen zu können, falls nötig
+@Setter
 public class User {
 
     @Id
@@ -20,23 +20,17 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    // Neues Feld für die Rolle des Benutzers
     @Column(nullable = false)
-    private String role = "ROLE_USER"; // Standardrolle für neue Benutzer
+    private String role = "ROLE_USER";
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Portfolio portfolio;
 
-    // Standardkonstruktor für JPA
     public User() {
     }
 
-    // Konstruktor für die Erstellung eines neuen Benutzers
     public User(String username, String password) {
         this.username = username;
         this.password = password;
-        // Die Rolle wird standardmäßig auf "ROLE_USER" gesetzt
     }
-
-    // Getter und Setter werden von Lombok (@Getter, @Setter) generiert
 }

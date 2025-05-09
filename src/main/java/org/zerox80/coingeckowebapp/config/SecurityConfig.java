@@ -24,7 +24,7 @@ import org.springframework.security.web.server.util.matcher.ServerWebExchangeMat
 import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
 
 @Configuration
-@EnableWebFluxSecurity // Wichtig: WebFlux Security aktivieren
+@EnableWebFluxSecurity
 public class SecurityConfig {
 
     private final UserRepository userRepository;
@@ -40,15 +40,10 @@ public class SecurityConfig {
 
     @Bean
     public ReactiveUserDetailsService userDetailsService() {
-        // Wickelt den blockierenden findByUsername Aufruf in ein Mono ein, um ihn in einen reaktiven Kontext zu bringen.
-        // Beachte: Für eine vollständig reaktive Anwendung sollte das Repository selbst reaktive Publisher zurückgeben.
         return username -> Mono.fromCallable(() -> userRepository.findByUsername(username))
-                // Wenn das Mono leer ist (Benutzer nicht gefunden), wirf eine UsernameNotFoundException reaktiv.
                 .switchIfEmpty(Mono.error(new UsernameNotFoundException("User not found")))
-                // Das User-Entity-Objekt in Spring Security's UserDetails umwandeln.
                 .map(user -> {
                     if (user == null) {
-                        // Dieser Fall sollte durch switchIfEmpty abgedeckt sein, aber zur Sicherheit.
                         throw new UsernameNotFoundException("User not found");
                     }
                     return org.springframework.security.core.userdetails.User
@@ -68,28 +63,22 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http, ReactiveAuthenticationManager authenticationManager) {
-        // ServerCsrfTokenRequestAttributeHandler requestHandler = new ServerCsrfTokenRequestAttributeHandler(); // Nicht mehr benötigt bei deaktiviertem CSRF
-        // ServerWebExchangeMatcher registerPostMatcher = 
-        //     new PathPatternParserServerWebExchangeMatcher("/register", HttpMethod.POST); // Nicht mehr benötigt
-
         return http
-                .authenticationManager(authenticationManager) // Setze den reaktiven AuthenticationManager
-                .authorizeExchange(exchanges -> exchanges // Verwende authorizeExchange für WebFlux
+                .authenticationManager(authenticationManager)
+                .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/register", "/login", "/css/**", "/js/**", "/images/**").permitAll()
-                        .pathMatchers("/portfolio/**").authenticated() // Portfolio-Pfade explizit schützen
-                        .anyExchange().authenticated() // Alle anderen Anfragen erfordern Authentifizierung
+                        .pathMatchers("/portfolio/**").authenticated()
+                        .anyExchange().authenticated()
                 )
                 .formLogin(formLogin -> formLogin
-                        .loginPage("/login") // Eigene Login-Seite
-                        // Weiterleitung nach erfolgreicher Anmeldung zur Startseite
+                        .loginPage("/login")
                         .authenticationSuccessHandler(new RedirectServerAuthenticationSuccessHandler("/"))
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/logout") // Logout-URL
-                        // **Korrigiert:** Verwende RedirectServerLogoutSuccessHandler für die Weiterleitung nach dem Logout
-                        .logoutSuccessHandler(new RedirectServerLogoutSuccessHandler()) // Standardmäßig wird zu /login?logout weitergeleitet
+                        .logoutUrl("/logout")
+                        .logoutSuccessHandler(new RedirectServerLogoutSuccessHandler())
                 )
-                .csrf(ServerHttpSecurity.CsrfSpec::disable) // CSRF global deaktivieren
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .build();
     }
 }

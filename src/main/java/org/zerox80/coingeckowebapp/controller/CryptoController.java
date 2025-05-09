@@ -28,10 +28,8 @@ public class CryptoController {
                               Model model) {
         logger.info("Request received for currency: {} and count: {}", currency, count);
 
-        // Validierung des count-Parameters: Sicherstellen, dass der Wert zwischen 1 und 250 liegt.
-        int effectiveCount = Math.max(1, Math.min(count, 250)); // Max 250, wie in der API-Dokumentation (ungefähr)
+        int effectiveCount = Math.max(1, Math.min(count, 250));
 
-        // Warnmeldung hinzufügen, wenn der angeforderte Wert außerhalb des gültigen Bereichs lag
         if (count > 250) {
             logger.warn("Requested count {} exceeds maximum allowed (250). Capping to 250.", count);
             model.addAttribute("warningMessage", "Requested count was capped at 250.");

@@ -22,7 +22,7 @@ public class PortfolioService {
     private static final Logger logger = LoggerFactory.getLogger(PortfolioService.class);
 
     private final PortfolioRepository portfolioRepository;
-    private final UserRepository userRepository; // Wird benötigt, um den User frisch zu laden in manchen Szenarien
+    private final UserRepository userRepository;
     private final PortfolioEntryRepository portfolioEntryRepository;
 
     @Value("${portfolio.initial.balance:1000000.00}")
@@ -31,7 +31,6 @@ public class PortfolioService {
     @Value("${portfolio.initial.currency:EUR}")
     private String initialCurrency;
 
-    // Custom Exception for insufficient funds
     public static class InsufficientFundsException extends RuntimeException {
         public InsufficientFundsException(String message) {
             super(message);
@@ -52,7 +51,7 @@ public class PortfolioService {
         }
 
         Portfolio portfolio = new Portfolio(user, initialBalance, initialCurrency);
-        user.setPortfolio(portfolio); // Bidirektionale Beziehung setzen
+        user.setPortfolio(portfolio);
         
         logger.info("Creating initial portfolio for user {} with balance {} {}", user.getUsername(), initialBalance, initialCurrency);
         return portfolioRepository.save(portfolio);
@@ -73,7 +72,7 @@ public class PortfolioService {
 
     @Transactional
     public void buyCryptocurrency(User user, String cryptocurrencyId, String cryptocurrencyName, String cryptocurrencySymbol, double currentPriceDouble, BigDecimal amountToBuy) {
-        Portfolio portfolio = getPortfolioForUser(user); // This already fetches with entries
+        Portfolio portfolio = getPortfolioForUser(user);
 
         BigDecimal currentPrice = BigDecimal.valueOf(currentPriceDouble);
         BigDecimal totalCost = amountToBuy.multiply(currentPrice).setScale(portfolio.getBalance().scale(), RoundingMode.HALF_UP);
@@ -93,18 +92,15 @@ public class PortfolioService {
             BigDecimal oldAvgPrice = existingEntry.getAveragePurchasePrice();
             
             BigDecimal newAmount = oldAmount.add(amountToBuy);
-            // ((oldAmount * oldAvgPrice) + (amountToBuy * currentPrice)) / newAmount
             BigDecimal newAvgPrice = (oldAmount.multiply(oldAvgPrice))
                                      .add(amountToBuy.multiply(currentPrice))
-                                     .divide(newAmount, 4, RoundingMode.HALF_UP); // Scale 4 for price
+                                     .divide(newAmount, 4, RoundingMode.HALF_UP);
 
             existingEntry.setAmount(newAmount);
             existingEntry.setAveragePurchasePrice(newAvgPrice);
-            // portfolioEntryRepository.save(existingEntry); // Rely on cascading from portfolio save
         } else {
             PortfolioEntry newEntry = new PortfolioEntry(portfolio, cryptocurrencyId, cryptocurrencySymbol, cryptocurrencyName, amountToBuy, currentPrice);
-            portfolio.getEntries().add(newEntry); // Add to portfolio's list of entries
-            // portfolioEntryRepository.save(newEntry); // Rely on cascading from portfolio save
+            portfolio.getEntries().add(newEntry);
         }
 
         portfolioRepository.save(portfolio);

@@ -22,11 +22,11 @@ public class Portfolio {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(nullable = false, precision = 19, scale = 4) // Geeignet für Geldbeträge
+    @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal balance;
 
     @Column(nullable = false, length = 3)
-    private String currency; // z.B. "EUR", "USD"
+    private String currency;
 
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PortfolioEntry> entries = new ArrayList<>();

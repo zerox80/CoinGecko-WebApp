@@ -46,7 +46,6 @@
             </div>
             <div class="form-group mr-2">
                 <label for="count" class="mr-2">Count:</label>
-                <!-- Max-Wert auf 250 geändert, um mit dem Controller übereinzustimmen -->
                 <input type="number" id="count" name="count" class="form-control" required min="1" max="250" th:value="${count}">
             </div>
             <button type="submit" class="btn btn-primary">Update</button>
@@ -59,10 +58,8 @@
         </div>
     </div>
 
-    <!-- Anzeige von Warn- oder Fehlermeldungen vom Controller -->
     <div th:if="${warningMessage}" class="alert alert-warning" role="alert" th:text="${warningMessage}"></div>
     <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
-
 
     <div class="row">
         <div th:each="crypto : ${cryptocurrencies}" class="col-md-4 crypto-card">
@@ -81,13 +78,11 @@
                             24h Change: <span th:text="${#numbers.formatDecimal(crypto.priceChangePercentage24h, 1, 2, 'COMMA')} + '%'"
                                               th:classappend="${crypto.priceChangePercentage24h > 0} ? 'positive' : (${crypto.priceChangePercentage24h < 0} ? 'negative' : '')"></span>
                         </p>
-                        <!-- Buy Form -->
                         <form th:action="@{/portfolio/buy}" method="post" class="buy-form form-inline">
                             <input type="hidden" name="cryptocurrencyId" th:value="${crypto.id}" />
                             <input type="hidden" name="cryptocurrencyName" th:value="${crypto.name}" />
                             <input type="hidden" name="cryptocurrencySymbol" th:value="${crypto.symbol}" />
                             <input type="hidden" name="currentPrice" th:value="${crypto.currentPrice}" />
-                            <!-- CSRF Token removed as CSRF is disabled globally -->
                             <div class="form-group">
                                 <input type="number" name="amount" class="form-control form-control-sm" placeholder="Amount" required step="any" min="0.00000001"/>
                             </div>

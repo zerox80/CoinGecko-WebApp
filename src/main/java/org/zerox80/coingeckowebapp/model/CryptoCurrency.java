@@ -33,7 +33,6 @@ public class CryptoCurrency {
             @JsonProperty("market_cap") double marketCap,
             @JsonProperty("price_change_percentage_24h") double priceChangePercentage24h) {
 
-        // Validierungen für nicht-null und nicht-leere Felder
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("ID cannot be null or empty");
         }
@@ -46,13 +45,11 @@ public class CryptoCurrency {
         if (image == null || image.trim().isEmpty()) {
             throw new IllegalArgumentException("Image URL cannot be null or empty");
         }
-        // Grundlegende URL-Validierung für das Bild
         try {
             new URI(image);
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Invalid image URL format: " + image, e);
         }
-
 
         this.id = id;
         this.symbol = symbol;
@@ -63,7 +60,6 @@ public class CryptoCurrency {
         this.priceChangePercentage24h = priceChangePercentage24h;
     }
 
-    // Hilfsmethode zur Formatierung des Market Caps für die Anzeige
     public String getMarketCapFormatted() {
         DecimalFormat formatter = new DecimalFormat("#,##0.00");
         if (marketCap >= 1_000_000_000) {

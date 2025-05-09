@@ -48,7 +48,6 @@
                 <p class="card-text">
                     Current Balance: <span class="balance-highlight" th:text="${#numbers.formatDecimal(portfolio.balance, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}"></span>
                 </p>
-                <!-- Später hier: Gesamtwert des Portfolios anzeigen -->
             </div>
         </div>
 
@@ -66,10 +65,6 @@
                     <th>Symbol</th>
                     <th>Amount</th>
                     <th>Avg. Purchase Price</th>
-                    <!-- <th>Current Price</th> -->
-                    <!-- <th>Current Value</th> -->
-                    <!-- <th>Profit/Loss</th> -->
-                    <!-- <th>Actions</th> -->
                 </tr>
                 </thead>
                 <tbody>
@@ -78,13 +73,11 @@
                     <td th:text="${entry.cryptocurrencySymbol.toUpperCase()}">BTC</td>
                     <td th:text="${#numbers.formatDecimal(entry.amount, 1, 8, 'COMMA')}">1.00000000</td>
                     <td th:text="${#numbers.formatDecimal(entry.averagePurchasePrice, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}">50000.00 EUR</td>
-                    <!-- Platzhalter für zukünftige Spalten -->
                 </tr>
                 </tbody>
             </table>
         </th:block>
         
-        <!-- Fallback if portfolio or entries is null, though entries should be an empty list by default -->
         <th:block th:if="${portfolio == null || portfolio.entries == null}">
              <div class="alert alert-warning" role="alert">
                 Portfolio data is currently unavailable or incomplete.

@@ -52,31 +52,29 @@ public class PortfolioController {
                     if (user == null) {
                         logger.error("Authenticated user {} not found in database.", userDetails.getUsername());
                         model.addAttribute("errorMessage", "User not found. Please login again.");
-                        model.addAttribute("isPortfolioEmpty", true); // Annahme für Fehlerfall
+                        model.addAttribute("isPortfolioEmpty", true);
                         return Mono.just("redirect:/login?error=userNotFound");
                     }
                     try {
                         Portfolio portfolio = portfolioService.getPortfolioForUser(user);
                         model.addAttribute("portfolio", portfolio);
                         
-                        boolean isPortfolioEmpty = true; // Standardmäßig annehmen, dass es leer ist oder ein Fehler auftritt
+                        boolean isPortfolioEmpty = true;
                         if (portfolio != null) {
-                            // portfolio.getEntries() sollte dank LEFT JOIN FETCH und Initialisierung in der Entität nicht null sein
                             isPortfolioEmpty = portfolio.getEntries().isEmpty();
                             model.addAttribute("userBalance", portfolio.getBalance());
                             model.addAttribute("portfolioCurrency", portfolio.getCurrency());
-                            // portfolioEntries ist ggf. redundant, wenn direkt über portfolio.entries iteriert wird
                             model.addAttribute("portfolioEntries", portfolio.getEntries()); 
                         }
                         model.addAttribute("isPortfolioEmpty", isPortfolioEmpty);
                         
-                        return Mono.just("portfolio"); // Name der Thymeleaf-Vorlage
+                        return Mono.just("portfolio");
                     } catch (Exception e) {
                         logger.error("Error fetching portfolio for user {}: {}", user.getUsername(), e.getMessage(), e);
                         model.addAttribute("errorMessage", "Could not load your portfolio. Please try again later.");
-                        model.addAttribute("portfolio", null); // Sicherstellen, dass Portfolio im Fehlerfall null ist
-                        model.addAttribute("isPortfolioEmpty", true); // Portfolio als leer/fehlerhaft behandeln
-                        return Mono.just("portfolio"); // Zeige die Portfolio-Seite mit Fehlermeldung
+                        model.addAttribute("portfolio", null);
+                        model.addAttribute("isPortfolioEmpty", true);
+                        return Mono.just("portfolio");
                     }
                 })
                 .onErrorResume(e -> {
@@ -104,12 +102,6 @@ public class PortfolioController {
             String currentPriceStr = formData.getFirst("currentPrice");
             String amountStr = formData.getFirst("amount");
 
-            // Helper function for URL encoding messages
-            // Not strictly necessary as a separate method for this controller, 
-            // but good practice if used in multiple places.
-            // For simplicity here, will encode directly inline.
-
-            // Validate required parameters
             if (cryptocurrencyId == null || cryptocurrencyId.isEmpty() ||
                 cryptocurrencyName == null || cryptocurrencyName.isEmpty() ||
                 cryptocurrencySymbol == null || cryptocurrencySymbol.isEmpty() ||
@@ -166,7 +158,6 @@ public class PortfolioController {
                 .flatMap(user -> {
                     if (user == null) {
                         logger.error("Authenticated user {} not found in database.", username);
-                        // This error is not user-facing with dynamic content, so direct redirect is fine.
                         return Mono.just("redirect:/login?error=userNotFound");
                     }
                     try {
@@ -196,7 +187,6 @@ public class PortfolioController {
                     }
                 });
         }).onErrorResume(e -> {
-            // This catches errors from exchange.getFormData() or other upstream errors
             logger.error("Unexpected error processing buyCrypto for user {}: {}", userDetails.getUsername(), e.getMessage(), e);
             String errorMessage = "An unexpected error occurred during purchase processing.";
             try {

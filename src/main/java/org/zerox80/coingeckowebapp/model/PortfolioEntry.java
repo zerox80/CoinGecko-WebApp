@@ -21,18 +21,17 @@ public class PortfolioEntry {
     private Portfolio portfolio;
 
     @Column(nullable = false)
-    private String cryptocurrencyId; // z.B. "bitcoin"
+    private String cryptocurrencyId;
 
     @Column(nullable = false)
-    private String cryptocurrencySymbol; // z.B. "btc"
+    private String cryptocurrencySymbol;
 
     @Column(nullable = false)
-    private String cryptocurrencyName; // z.B. "Bitcoin"
+    private String cryptocurrencyName;
 
-    @Column(nullable = false, precision = 19, scale = 8) // Erlaubt viele Nachkommastellen für Krypto-Mengen
+    @Column(nullable = false, precision = 19, scale = 8)
     private BigDecimal amount;
 
-    // Durchschnittlicher Kaufpreis pro Einheit in der Währung des Portfolios
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal averagePurchasePrice;
 

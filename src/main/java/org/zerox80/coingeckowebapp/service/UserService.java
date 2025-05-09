@@ -34,19 +34,13 @@ public class UserService {
     @Transactional
     public User registerNewUser(String username, String password) {
         if (userRepository.findByUsername(username) != null) {
-            // Handle case where username already exists (e.g., throw an exception)
             throw new RuntimeException("Username " + username + " already exists.");
         }
         User newUser = new User();
         newUser.setUsername(username);
         newUser.setPassword(passwordEncoder.encode(password));
         User savedUser = userRepository.save(newUser);
-        
-        // Initiales Portfolio für den neuen Benutzer erstellen
         portfolioService.createInitialPortfolio(savedUser);
-        
         return savedUser;
     }
-
-    // Add other necessary methods here
 }
