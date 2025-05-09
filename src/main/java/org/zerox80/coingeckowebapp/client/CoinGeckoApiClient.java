@@ -1,25 +1,29 @@
 package org.zerox80.coingeckowebapp.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zerox80.coingeckowebapp.model.CryptoCurrency;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.util.retry.Retry;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
 @Component
 public class CoinGeckoApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(CoinGeckoApiClient.class);
     private static final String API_BASE_URL = "https://api.coingecko.com/api/v3";
+    private final WebClient webClient;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
@@ -30,9 +34,12 @@ public class CoinGeckoApiClient {
     private long retryDelayMs;
 
 
-    public CoinGeckoApiClient(ObjectMapper objectMapper) {
+    public CoinGeckoApiClient(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder
+            .baseUrl(API_BASE_URL)
+            .build();
         this.httpClient = HttpClient.newHttpClient();
-        this.objectMapper = objectMapper;
+        this.objectMapper = new ObjectMapper();
     }
 
 

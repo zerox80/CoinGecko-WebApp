@@ -37,6 +37,19 @@ public final class CryptoCurrency {
             @JsonProperty("price_change_percentage_24h") double priceChangePercentage24h,
             @JsonProperty("market_cap") double marketCap,
             @JsonProperty("image") String image) {
+        if (id == null || id.isEmpty()) {
+            throw new IllegalArgumentException("ID cannot be null or empty");
+        }
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Name cannot be null or empty");
+        }
+        if (symbol == null || symbol.isEmpty()) {
+            throw new IllegalArgumentException("Symbol cannot be null or empty");
+        }
+        if (image == null || image.isEmpty()) {
+            throw new IllegalArgumentException("Image URL cannot be null or empty");
+        }
+
         this.id = id;
         this.name = name;
         this.symbol = symbol;

@@ -10,14 +10,13 @@ import org.slf4j.LoggerFactory;
 @EnableCaching
 public class CoinGeckoWebApplication {
     private static final Logger logger = LoggerFactory.getLogger(CoinGeckoWebApplication.class);
-
     public static void main(String[] args) {
-        try {
-            logger.info("Starting CoinGeckoWebApplication");
-            SpringApplication.run(CoinGeckoWebApplication.class, args);
-            logger.info("CoinGeckoWebApplication started successfully");
-        } catch (Exception e) {
-            logger.error("Failed to start CoinGeckoWebApplication", e);
-        }
+        // Log startup
+        logger.info("Starting CoinGeckoWebApplication");
+        // Let SpringApplication.run(...) throw any real errors,
+        // and allow DevTools' SilentExitException to bubble up
+        SpringApplication.run(CoinGeckoWebApplication.class, args);
+        // If we get here, it really started successfully
+        logger.info("CoinGeckoWebApplication started successfully");
     }
 }

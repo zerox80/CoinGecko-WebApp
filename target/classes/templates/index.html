@@ -13,14 +13,14 @@
     <form method="get" class="mb-4">
         <div class="row g-3">
             <div class="col-auto">
-                <select name="currency" class="form-select">
+                <select name="currency" class="form-select" required>
                     <option value="eur" th:selected="${currency == 'eur'}">EUR</option>
                     <option value="usd" th:selected="${currency == 'usd'}">USD</option>
                     <option value="gbp" th:selected="${currency == 'gbp'}">GBP</option>
                 </select>
             </div>
             <div class="col-auto">
-                <input type="number" name="count" class="form-control" min="1" max="100"
+                <input type="number" name="count" class="form-control" required min="1" max="100"
                        th:value="${param.count ?: 10}">
             </div>
             <div class="col-auto">
