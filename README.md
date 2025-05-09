@@ -13,6 +13,7 @@ Basically, it's a way for me to learn about:
 ### Features
 
 - Fetches current prices and other market data (like 24h change, market cap) for top cryptocurrencies.
+- **NEW: Lets you track your own crypto investments with a personal portfolio feature! Keep an eye on your gains (or losses, oops!).**
 - Displays the data in a simple, easy-to-read table or card format on a webpage.
 - Allows selecting different base currencies (like EUR, USD).
 

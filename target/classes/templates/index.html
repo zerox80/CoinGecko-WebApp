@@ -1,77 +1,103 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Crypto Price Viewer</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Top Cryptocurrencies</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .crypto-card {
+            margin-bottom: 20px;
+        }
+        .crypto-card img {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+        }
+        .price-change {
+            font-weight: bold;
+        }
+        .price-change.positive {
+            color: green;
+        }
+        .price-change.negative {
+            color: red;
+        }
+        .buy-form {
+            margin-top: 10px;
+        }
+        .buy-form .form-control {
+            max-width: 120px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-4">
-    <h1>Cryptocurrency Prices</h1>
-
-    <form method="get" class="mb-4">
-        <div class="row g-3">
-            <div class="col-auto">
-                <select name="currency" class="form-select" required>
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Top Cryptocurrencies</h2>
+        <form th:action="@{/}" method="get" class="form-inline">
+            <div class="form-group mr-2">
+                <label for="currency" class="mr-2">Currency:</label>
+                <select id="currency" name="currency" class="form-control">
                     <option value="eur" th:selected="${currency == 'eur'}">EUR</option>
                     <option value="usd" th:selected="${currency == 'usd'}">USD</option>
-                    <option value="gbp" th:selected="${currency == 'gbp'}">GBP</option>
                 </select>
             </div>
-            <div class="col-auto">
-                <input type="number" name="count" class="form-control" required min="1" max="100"
-                       th:value="${param.count ?: 10}">
+            <div class="form-group mr-2">
+                <label for="count" class="mr-2">Count:</label>
+                <!-- Max-Wert auf 250 geändert, um mit dem Controller übereinzustimmen -->
+                <input type="number" id="count" name="count" class="form-control" required min="1" max="250" th:value="${count}">
             </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary">Update</button>
-            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+        <div>
+            <a th:href="@{/portfolio}" class="btn btn-success mr-2">My Portfolio</a>
+            <form th:action="@{/logout}" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Logout</button>
+            </form>
         </div>
-    </form>
+    </div>
 
+    <!-- Anzeige von Warn- oder Fehlermeldungen vom Controller -->
     <div th:if="${warningMessage}" class="alert alert-warning" role="alert" th:text="${warningMessage}"></div>
     <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
 
+
     <div class="row">
-        <div th:each="coin : ${coins}" class="col-md-4 mb-4">
+        <div th:each="crypto : ${cryptocurrencies}" class="col-md-4 crypto-card">
             <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <img th:src="${coin.image}" alt="Logo" style="width: 40px; height: 40px;" class="me-2">
-                        <h5 class="card-title mb-0" th:text="${coin.name + ' (' + coin.symbol.toUpperCase() + ')'}"></h5>
+                <div class="card-body d-flex align-items-center">
+                    <img th:src="${crypto.image}" alt="Crypto Image">
+                    <div>
+                        <h5 class="card-title" th:text="${crypto.name}"></h5>
+                        <p class="card-text">
+                            Price: <span th:switch="${currency.toLowerCase()}">
+                                        <span th:case="'eur'" th:text="${#numbers.formatDecimal(crypto.currentPrice, 1, 2, 'COMMA')} + ' €'"></span>
+                                        <span th:case="'usd'" th:text="${#numbers.formatDecimal(crypto.currentPrice, 1, 2, 'COMMA')} + ' $'"></span>
+                                        <span th:case="*" th:text="${#numbers.formatDecimal(crypto.currentPrice, 1, 2, 'COMMA')} + ' ' + ${currency.toUpperCase()}"></span>
+                                   </span><br>
+                            Market Cap: <span th:text="${crypto.marketCapFormatted}"></span><br>
+                            24h Change: <span th:text="${#numbers.formatDecimal(crypto.priceChangePercentage24h, 1, 2, 'COMMA')} + '%'"
+                                              th:classappend="${crypto.priceChangePercentage24h > 0} ? 'positive' : (${crypto.priceChangePercentage24h < 0} ? 'negative' : '')"></span>
+                        </p>
+                        <!-- Buy Form -->
+                        <form th:action="@{/portfolio/buy}" method="post" class="buy-form form-inline">
+                            <input type="hidden" name="cryptocurrencyId" th:value="${crypto.id}" />
+                            <input type="hidden" name="cryptocurrencyName" th:value="${crypto.name}" />
+                            <input type="hidden" name="cryptocurrencySymbol" th:value="${crypto.symbol}" />
+                            <input type="hidden" name="currentPrice" th:value="${crypto.currentPrice}" />
+                            <!-- CSRF Token removed as CSRF is disabled globally -->
+                            <div class="form-group">
+                                <input type="number" name="amount" class="form-control form-control-sm" placeholder="Amount" required step="any" min="0.00000001"/>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">Buy</button>
+                        </form>
                     </div>
-                    <p class="card-text">
-                        <strong>Price:</strong>
-                        <span th:text="${#numbers.formatDecimal(coin.currentPrice, 1, 2) + ' ' + currency.toUpperCase()}"></span>
-                    </p>
-                    <p class="card-text">
-                        <strong>24h Change:</strong>
-                        <span th:text="${#numbers.formatDecimal(coin.priceChangePercentage24h, 1, 2) + '%'}"
-                              th:class="${coin.priceChangePercentage24h >= 0 ? 'text-success' : 'text-danger'}"></span>
-                    </p>
-                    <p class="card-text">
-                        <strong>Market Cap:</strong>
-                        <span th:switch="true">
-                            <span th:case="${coin.marketCap >= 1000000000}"
-                                  th:text="${#numbers.formatDecimal(coin.marketCap / 1000000000, 1, 2) + ' B ' + currency.toUpperCase()}">
-                            </span>
-                            <span th:case="${coin.marketCap >= 1000000}"
-                                  th:text="${#numbers.formatDecimal(coin.marketCap / 1000000, 1, 2) + ' M ' + currency.toUpperCase()}">
-                            </span>
-                            <span th:case="*"
-                                  th:text="${#numbers.formatDecimal(coin.marketCap, 1, 0) + ' ' + currency.toUpperCase()}">
-                            </span>
-                        </span>
-                    </p>
                 </div>
             </div>
         </div>
-        <div th:if="${#lists.isEmpty(coins) and !errorMessage}" class="col-12">
-            <p>No cryptocurrency data available.</p>
-        </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

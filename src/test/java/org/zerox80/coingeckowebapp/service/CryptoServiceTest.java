@@ -1,20 +1,20 @@
 package org.zerox80.coingeckowebapp.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.zerox80.coingeckowebapp.client.CoinGeckoApiClient;
 import org.zerox80.coingeckowebapp.model.CryptoCurrency;
 
 import java.util.ArrayList;
 import java.util.List;
+import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class CryptoServiceTest {
 
     @Mock
@@ -23,54 +23,61 @@ class CryptoServiceTest {
     @InjectMocks
     private CryptoService cryptoService;
 
-    @Test
-    void testGetTopCryptocurrencies_Success() {
-        String currency = "eur";
-        int count = 5;
-        List<CryptoCurrency> mockCoins = new ArrayList<>();
-
-        // HIER IST DIE WICHTIGE ÄNDERUNG:
-        // Erstelle das CryptoCurrency-Objekt mit dem neuen Konstruktor,
-        // der alle Argumente erwartet.
-        CryptoCurrency bitcoin = new CryptoCurrency(
-                "bitcoin",                  // id
-                "Bitcoin",                  // name
-                "BTC",                      // symbol
-                50000.0,                    // currentPrice (Beispielwert)
-                2.5,                        // priceChangePercentage24h (Beispielwert)
-                1000000000000.0,            // marketCap (Beispielwert)
-                "http://example.com/btc.png" // image (Beispielwert)
-        );
-        // Die folgenden Zeilen sind nicht mehr nötig und würden Fehler verursachen,
-        // da es keine Setter mehr gibt und die Felder final sind:
-        // bitcoin.setId("bitcoin");
-        // bitcoin.setName("Bitcoin");
-        mockCoins.add(bitcoin);
-
-        // Der Rest des Tests kann wahrscheinlich so bleiben:
-        when(apiClient.getCoins(currency, count)).thenReturn(mockCoins);
-
-        List<CryptoCurrency> actualCoins = cryptoService.getTopCryptocurrencies(currency, count);
-
-        assertNotNull(actualCoins);
-        assertEquals(mockCoins.size(), actualCoins.size());
-        // Stelle sicher, dass du auf Eigenschaften zugreifst, die du im Konstruktor gesetzt hast
-        assertEquals("Bitcoin", actualCoins.get(0).getName());
-        assertEquals("bitcoin", actualCoins.get(0).getId());
-
-        verify(apiClient, times(1)).getCoins(currency, count);
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    void testGetTopCryptocurrencies_ApiReturnsEmptyList() {
-        String currency = "usd";
-        int count = 10;
-        when(apiClient.getCoins(currency, count)).thenReturn(new ArrayList<>());
+    void testGetTopCryptocurrencies_Success() {
+        // Mock-Daten erstellen
+        List<CryptoCurrency> mockCryptoList = new ArrayList<>();
+        // Stellen Sie sicher, dass alle erforderlichen Felder im Konstruktor vorhanden sind
+        mockCryptoList.add(new CryptoCurrency("bitcoin", "Bitcoin", "btc", "https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1547033579", 50000.0, 1000000000.0, 2.5));
+        mockCryptoList.add(new CryptoCurrency("ethereum", "Ethereum", "eth", "https://assets.coingecko.com/coins/images/279/large/ethereum.png?1595348880", 3000.0, 500000000.0, -1.0));
 
-        List<CryptoCurrency> actualCoins = cryptoService.getTopCryptocurrencies(currency, count);
+        // Mock-Verhalten definieren: apiClient.getCoins soll ein Mono mit mockCryptoList zurückgeben
+        when(apiClient.getCoins("usd", 10)).thenReturn(Mono.just(mockCryptoList));
 
-        assertNotNull(actualCoins);
-        assertTrue(actualCoins.isEmpty());
-        verify(apiClient, times(1)).getCoins(currency, count);
+        // Service-Methode aufrufen und Ergebnis blockieren für den Test
+        List<CryptoCurrency> result = cryptoService.getTopCryptocurrencies("usd", 10).block();
+
+        // Ergebnisse überprüfen
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals("Bitcoin", result.get(0).getName());
+        assertEquals("ethereum", result.get(1).getId());
+
+        // Überprüfen, ob die API-Methode genau einmal mit den richtigen Parametern aufgerufen wurde
+        verify(apiClient, times(1)).getCoins("usd", 10);
+    }
+
+    @Test
+    void testGetTopCryptocurrencies_EmptyResponse() {
+        // Mock-Verhalten für leere Antwort definieren
+        when(apiClient.getCoins("usd", 10)).thenReturn(Mono.just(new ArrayList<>()));
+
+        // Service-Methode aufrufen und Ergebnis blockieren
+        List<CryptoCurrency> result = cryptoService.getTopCryptocurrencies("usd", 10).block();
+
+        // Ergebnisse überprüfen
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        // Überprüfen, ob die API-Methode aufgerufen wurde
+        verify(apiClient, times(1)).getCoins("usd", 10);
+    }
+
+    @Test
+    void testGetTopCryptocurrencies_ApiThrowsException() {
+        // Mock-Verhalten für Exception definieren
+        when(apiClient.getCoins("usd", 10)).thenReturn(Mono.error(new RuntimeException("API Error")));
+
+        // Service-Methode aufrufen und erwarten, dass eine RuntimeException geworfen wird (durch .block())
+        assertThrows(RuntimeException.class, () ->
+                cryptoService.getTopCryptocurrencies("usd", 10).block());
+
+        // Überprüfen, ob die API-Methode aufgerufen wurde
+        verify(apiClient, times(1)).getCoins("usd", 10);
     }
 }

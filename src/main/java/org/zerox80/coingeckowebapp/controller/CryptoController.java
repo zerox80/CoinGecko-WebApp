@@ -8,14 +8,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.zerox80.coingeckowebapp.model.CryptoCurrency;
 import org.zerox80.coingeckowebapp.service.CryptoService;
+import reactor.core.publisher.Mono;
 
-import java.util.Collections;
 import java.util.List;
 
 @Controller
 public class CryptoController {
 
-    private static final Logger log = LoggerFactory.getLogger(CryptoController.class);
+    private static final Logger logger = LoggerFactory.getLogger(CryptoController.class);
     private final CryptoService cryptoService;
 
     public CryptoController(CryptoService cryptoService) {
@@ -23,39 +23,36 @@ public class CryptoController {
     }
 
     @GetMapping("/")
-    public String index(Model model,
-                        @RequestParam(defaultValue = "eur") String currency,
-                        @RequestParam(defaultValue = "10") int count) {
+    public Mono<String> index(@RequestParam(value = "currency", defaultValue = "eur") String currency,
+                              @RequestParam(value = "count", defaultValue = "10") int count,
+                              Model model) {
+        logger.info("Request received for currency: {} and count: {}", currency, count);
 
-        log.info("Received request for index page. Currency: '{}', Count: {}", currency, count);
+        // Validierung des count-Parameters: Sicherstellen, dass der Wert zwischen 1 und 250 liegt.
+        int effectiveCount = Math.max(1, Math.min(count, 250)); // Max 250, wie in der API-Dokumentation (ungefähr)
 
-        String warningMessage = null;
-        if (count <= 0) {
-            log.warn("Invalid count requested: {}. Using default value 10.", count);
-            count = 10;
-            warningMessage = "Invalid count specified. Using default value (10).";
-        } else if (count > 250) { // Assuming 250 is a reasonable limit
-            log.warn("Requested count {} exceeds maximum (250). Reducing to 250.", count);
-            count = 250;
-            warningMessage = "Requested count exceeds maximum. Using maximum value (250).";
+        // Warnmeldung hinzufügen, wenn der angeforderte Wert außerhalb des gültigen Bereichs lag
+        if (count > 250) {
+            logger.warn("Requested count {} exceeds maximum allowed (250). Capping to 250.", count);
+            model.addAttribute("warningMessage", "Requested count was capped at 250.");
+        } else if (count < 1) {
+             logger.warn("Requested count {} is less than minimum allowed (1). Setting to 1.", count);
+             model.addAttribute("warningMessage", "Requested count was set to 1.");
         }
 
-        if (warningMessage != null) {
-            model.addAttribute("warningMessage", warningMessage);
-        }
-
-        List<CryptoCurrency> coins = Collections.emptyList();
-        try {
-            log.debug("Calling CryptoService for Currency: '{}', Count: {}", currency, count);
-            coins = cryptoService.getTopCryptocurrencies(currency, count);
-            log.info("Successfully retrieved {} cryptocurrencies for currency '{}'.", coins.size(), currency);
-        } catch (Exception e) {
-            log.error("Error retrieving cryptocurrency data for currency '{}', count {}: {}", currency, count, e.getMessage(), e);
-            model.addAttribute("errorMessage", "Could not load cryptocurrency data. The API might be unavailable or currency '" + currency + "' might not be supported. Please try again later.");
-        }
-
-        model.addAttribute("coins", coins);
         model.addAttribute("currency", currency);
-        return "index";
+        model.addAttribute("count", effectiveCount);
+
+        return cryptoService.getTopCryptocurrencies(currency, effectiveCount)
+                .doOnNext(cryptocurrencies -> {
+                    model.addAttribute("cryptocurrencies", cryptocurrencies);
+                })
+                .thenReturn("index")
+                .onErrorResume(e -> {
+                    logger.error("Error fetching cryptocurrencies: {}", e.getMessage(), e);
+                    model.addAttribute("errorMessage", "Failed to fetch cryptocurrency data. Please try again later.");
+                    model.addAttribute("cryptocurrencies", List.of());
+                    return Mono.just("index");
+                });
     }
 }

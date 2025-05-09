@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My Portfolio</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            padding-top: 20px;
+        }
+        .portfolio-header {
+            margin-bottom: 30px;
+        }
+        .empty-portfolio {
+            color: #6c757d;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .balance-highlight {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center portfolio-header">
+        <h2>My Portfolio</h2>
+        <div>
+            <a th:href="@{/}" class="btn btn-info mr-2">Back to Market</a>
+            <form th:action="@{/logout}" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Logout</button>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
+    <div th:if="${successMessage}" class="alert alert-success" role="alert" th:text="${successMessage}"></div>
+
+    <div th:if="${portfolio}">
+        <div class="card mb-4">
+            <div class="card-header">
+                Portfolio Overview
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    Current Balance: <span class="balance-highlight" th:text="${#numbers.formatDecimal(portfolio.balance, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}"></span>
+                </p>
+                <!-- Später hier: Gesamtwert des Portfolios anzeigen -->
+            </div>
+        </div>
+
+        <h4>My Crypto Assets</h4>
+
+        <th:block th:if="${portfolio != null && portfolio.entries != null}">
+            <div th:if="${#lists.size(portfolio.entries) == 0}" class="alert alert-info empty-portfolio" role="alert">
+                You do not own any crypto assets yet. Start by buying some from the market!
+            </div>
+
+            <table class="table table-hover" th:unless="${#lists.size(portfolio.entries) == 0}">
+                <thead class="thead-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Symbol</th>
+                    <th>Amount</th>
+                    <th>Avg. Purchase Price</th>
+                    <!-- <th>Current Price</th> -->
+                    <!-- <th>Current Value</th> -->
+                    <!-- <th>Profit/Loss</th> -->
+                    <!-- <th>Actions</th> -->
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="entry : ${portfolio.entries}">
+                    <td th:text="${entry.cryptocurrencyName}">Bitcoin</td>
+                    <td th:text="${entry.cryptocurrencySymbol.toUpperCase()}">BTC</td>
+                    <td th:text="${#numbers.formatDecimal(entry.amount, 1, 8, 'COMMA')}">1.00000000</td>
+                    <td th:text="${#numbers.formatDecimal(entry.averagePurchasePrice, 1, 2, 'COMMA')} + ' ' + ${portfolio.currency}">50000.00 EUR</td>
+                    <!-- Platzhalter für zukünftige Spalten -->
+                </tr>
+                </tbody>
+            </table>
+        </th:block>
+        
+        <!-- Fallback if portfolio or entries is null, though entries should be an empty list by default -->
+        <th:block th:if="${portfolio == null || portfolio.entries == null}">
+             <div class="alert alert-warning" role="alert">
+                Portfolio data is currently unavailable or incomplete.
+            </div>
+        </th:block>
+
+    </div>
+
+</div>
+</body>
+</html> 
