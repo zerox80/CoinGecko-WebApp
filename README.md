@@ -1,6 +1,5 @@
 # My Crypto Price Viewer Project
-![image](https://github.com/user-attachments/assets/4e398272-fae4-4e9e-af80-f84236f723b2)
-
+![Screenshot 2025-05-10 212908](https://github.com/user-attachments/assets/59f54f51-5612-45d2-b5c0-01b58b046920)
 Hey there! 👋
 
 This is a project I'm working on for my self. The main goal is to build a simple web application using Java and Spring Boot that fetches current cryptocurrency prices using the CoinGecko API and displays them nicely on a webpage.
