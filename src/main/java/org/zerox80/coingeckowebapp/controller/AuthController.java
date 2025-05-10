@@ -28,7 +28,23 @@ public class AuthController {
     }
 
     @GetMapping("/login")
-    public String login() {
+    public String login(ServerWebExchange exchange, Model model) {
+        logger.info("Accessing /login page. Current URL in exchange: {}", exchange.getRequest().getURI());
+        logger.info("Query Params from ServerWebExchange:");
+        exchange.getRequest().getQueryParams().forEach((key, values) -> {
+            logger.info("  Param: {} = {}", key, String.join(",", values));
+        });
+
+        boolean showError = exchange.getRequest().getQueryParams().containsKey("error");
+        boolean showLogout = exchange.getRequest().getQueryParams().containsKey("logout");
+
+        model.addAttribute("displayLoginError", showError);
+        model.addAttribute("displayLogoutMessage", showLogout);
+        
+        logger.info("Model Attributes being set: displayLoginError={}, displayLogoutMessage={}", showError, showLogout);
+        model.asMap().forEach((key, value) -> { // Log all model attributes for thoroughness
+            logger.info("  Final Model Attr: {} = {}", key, value);
+        });
         return "login";
     }
 

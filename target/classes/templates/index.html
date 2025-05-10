@@ -27,6 +27,7 @@
         <div>
             <a th:href="@{/portfolio}" class="btn btn-success mr-2">My Portfolio</a>
             <form th:action="@{/logout}" method="post" style="display: inline;">
+                <input type="hidden" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}"/>
                 <button type="submit" class="btn btn-danger">Logout</button>
             </form>
         </div>
@@ -53,6 +54,7 @@
                                               th:classappend="${crypto.priceChangePercentage24h > 0} ? 'positive' : (${crypto.priceChangePercentage24h < 0} ? 'negative' : '')"></span>
                         </p>
                         <form th:action="@{/portfolio/buy}" method="post" class="buy-form form-inline">
+                            <input type="hidden" th:name="${_csrf != null ? _csrf.parameterName : '_csrf'}" th:value="${_csrf != null ? _csrf.token : ''}"/>
                             <input type="hidden" name="cryptocurrencyId" th:value="${crypto.id}" />
                             <input type="hidden" name="cryptocurrencyName" th:value="${crypto.name}" />
                             <input type="hidden" name="cryptocurrencySymbol" th:value="${crypto.symbol}" />

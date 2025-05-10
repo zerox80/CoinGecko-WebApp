@@ -10,11 +10,11 @@
 <div class="login-container">
     <h2 class="text-center mb-4">Login</h2>
 
-    <div th:if="${param.error}" class="alert alert-danger" role="alert">
+    <div th:if="${displayLoginError}" class="alert alert-danger" role="alert">
         Ungültiger Benutzername oder Passwort.
     </div>
 
-    <div th:if="${param.logout}" class="alert alert-success" role="alert">
+    <div th:if="${displayLogoutMessage}" class="alert alert-success" role="alert">
         Sie wurden abgemeldet.
     </div>
 

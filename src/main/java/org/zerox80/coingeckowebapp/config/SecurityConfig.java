@@ -16,6 +16,7 @@ import org.springframework.security.web.server.authentication.RedirectServerAuth
 import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
 import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.server.header.XFrameOptionsServerHttpHeadersWriter;
 import reactor.core.publisher.Mono;
 import org.zerox80.coingeckowebapp.repository.UserRepository;
 import org.springframework.http.HttpMethod;
@@ -74,11 +75,21 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .authenticationSuccessHandler(new RedirectServerAuthenticationSuccessHandler("/"))
                 )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessHandler(new RedirectServerLogoutSuccessHandler())
+                .logout(logout -> {
+                    RedirectServerLogoutSuccessHandler successHandler = new RedirectServerLogoutSuccessHandler();
+                    successHandler.setLogoutSuccessUrl(java.net.URI.create("/login"));
+                    logout.logoutUrl("/logout").logoutSuccessHandler(successHandler);
+                })
+                .csrf(csrf -> csrf
+                    .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
+                    .csrfTokenRequestHandler(new ServerCsrfTokenRequestAttributeHandler())
                 )
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .headers(headers -> headers
+                    .frameOptions(options -> options.mode(XFrameOptionsServerHttpHeadersWriter.Mode.SAMEORIGIN))
+                    .contentSecurityPolicy(csp -> csp
+                        .policyDirectives("default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://stackpath.bootstrapcdn.com; style-src 'self' https://cdn.jsdelivr.net https://stackpath.bootstrapcdn.com 'unsafe-inline'; img-src 'self' data: *.coingecko.com;")
+                    )
+                )
                 .build();
     }
 }
