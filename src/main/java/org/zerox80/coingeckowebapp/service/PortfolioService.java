@@ -80,15 +80,17 @@ public class PortfolioService {
     public Mono<Void> buyCryptocurrency(User user, String cryptocurrencyId, String cryptocurrencyName, String cryptocurrencySymbol, double currentPriceDouble, BigDecimal amountToBuy) {
         Portfolio portfolio = getPortfolioForUser(user);
 
-        return cryptoService.getCurrentPrices(List.of(cryptocurrencyId), portfolio.getCurrency().toLowerCase())
+        String normalizedCryptocurrencyId = cryptocurrencyId.toLowerCase();
+
+        return cryptoService.getCurrentPrices(List.of(normalizedCryptocurrencyId), portfolio.getCurrency().toLowerCase())
             .flatMap(pricesMap -> {
-                if (pricesMap == null || !pricesMap.containsKey(cryptocurrencyId) || !pricesMap.get(cryptocurrencyId).containsKey(portfolio.getCurrency().toLowerCase())) {
-                    return Mono.error(new RuntimeException("Could not fetch price for cryptocurrency: " + cryptocurrencyId + " in currency: " + portfolio.getCurrency()));
+                if (pricesMap == null || !pricesMap.containsKey(normalizedCryptocurrencyId) || !pricesMap.get(normalizedCryptocurrencyId).containsKey(portfolio.getCurrency().toLowerCase())) {
+                    return Mono.error(new RuntimeException("Could not fetch price for cryptocurrency: " + normalizedCryptocurrencyId + " in currency: " + portfolio.getCurrency()));
                 }
 
-                Double priceDouble = pricesMap.get(cryptocurrencyId).get(portfolio.getCurrency().toLowerCase());
+                Double priceDouble = pricesMap.get(normalizedCryptocurrencyId).get(portfolio.getCurrency().toLowerCase());
                 if (priceDouble == null) {
-                    return Mono.error(new RuntimeException("Price for cryptocurrency: " + cryptocurrencyId + " was null."));
+                    return Mono.error(new RuntimeException("Price for cryptocurrency: " + normalizedCryptocurrencyId + " was null."));
                 }
                 BigDecimal currentPrice = BigDecimal.valueOf(priceDouble);
                 
@@ -101,7 +103,7 @@ public class PortfolioService {
 
                 portfolio.setBalance(portfolio.getBalance().subtract(totalCost));
 
-                Optional<PortfolioEntry> existingEntryOpt = portfolioEntryRepository.findByPortfolioAndCryptocurrencyId(portfolio, cryptocurrencyId);
+                Optional<PortfolioEntry> existingEntryOpt = portfolioEntryRepository.findByPortfolioAndCryptocurrencyId(portfolio, normalizedCryptocurrencyId);
 
                 if (existingEntryOpt.isPresent()) {
                     PortfolioEntry existingEntry = existingEntryOpt.get();
@@ -115,14 +117,21 @@ public class PortfolioService {
 
                     existingEntry.setAmount(newAmount);
                     existingEntry.setAveragePurchasePrice(newAvgPrice);
+                    
+                    PortfolioEntry savedManagedEntry = portfolioEntryRepository.save(existingEntry);
+
+                    final Long entryId = savedManagedEntry.getId();
+                    portfolio.getEntries().removeIf(e -> e.getId() != null && e.getId().equals(entryId));
+                    portfolio.getEntries().add(savedManagedEntry);
+
                 } else {
-                    PortfolioEntry newEntry = new PortfolioEntry(portfolio, cryptocurrencyId, cryptocurrencySymbol, cryptocurrencyName, amountToBuy, currentPrice);
+                    PortfolioEntry newEntry = new PortfolioEntry(portfolio, normalizedCryptocurrencyId, cryptocurrencySymbol, cryptocurrencyName, amountToBuy, currentPrice);
                     portfolio.getEntries().add(newEntry);
                 }
 
                 portfolioRepository.save(portfolio);
                 logger.info("Successfully processed purchase for user {}: {} of {} for {} {}", 
-                    user.getUsername(), amountToBuy, cryptocurrencyId, totalCost, portfolio.getCurrency());
+                    user.getUsername(), amountToBuy, normalizedCryptocurrencyId, totalCost, portfolio.getCurrency());
                 return Mono.empty();
             });
     }

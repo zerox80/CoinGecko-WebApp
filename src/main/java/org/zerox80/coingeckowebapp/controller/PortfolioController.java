@@ -77,6 +77,7 @@ public class PortfolioController {
                         if (portfolio != null && !portfolio.getEntries().isEmpty()) {
                             List<String> coinIds = portfolio.getEntries().stream()
                                     .map(PortfolioEntry::getCryptocurrencyId)
+                                    .map(String::toLowerCase)
                                     .distinct()
                                     .collect(Collectors.toList());
 
@@ -84,7 +85,8 @@ public class PortfolioController {
                                 .map(prices -> {
                                     BigDecimal currentTotalCryptoValue = BigDecimal.ZERO;
                                     for (PortfolioEntry entry : portfolio.getEntries()) {
-                                        Map<String, Double> priceData = prices.get(entry.getCryptocurrencyId());
+                                        String normalizedEntryId = entry.getCryptocurrencyId().toLowerCase();
+                                        Map<String, Double> priceData = prices.get(normalizedEntryId);
                                         BigDecimal currentPrice = BigDecimal.ZERO;
                                         if (priceData != null && priceData.containsKey(portfolio.getCurrency().toLowerCase())) {
                                             currentPrice = BigDecimal.valueOf(priceData.get(portfolio.getCurrency().toLowerCase()));
