@@ -228,31 +228,33 @@ public class PortfolioController {
                         logger.error("Authenticated user {} not found in database.", username);
                         return Mono.just("redirect:/login?error=userNotFound");
                     }
-                    try {
-                        portfolioService.buyCryptocurrency(user, cryptocurrencyId, cryptocurrencyName, cryptocurrencySymbol, currentPrice, amount);
-                        logger.info("User {} successfully bought {} of {}", username, amount, cryptocurrencyId);
-                        String successMessage = "Successfully bought " + amount + " " + cryptocurrencySymbol.toUpperCase();
-                        try {
-                            return Mono.just("redirect:/portfolio?successMessage=" + URLEncoder.encode(successMessage, StandardCharsets.UTF_8.toString()));
-                        } catch (UnsupportedEncodingException e) {
-                            return Mono.just("redirect:/portfolio?successMessage=Purchase+successful.");
-                        }
-                    } catch (PortfolioService.InsufficientFundsException e) {
-                        logger.warn("User {} has insufficient funds to buy {} of {}: {}", username, amount, cryptocurrencyId, e.getMessage());
-                        try {
-                            return Mono.just("redirect:/portfolio?errorMessage=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
-                        } catch (UnsupportedEncodingException ex) {
-                            return Mono.just("redirect:/portfolio?errorMessage=Insufficient+funds.");
-                        }
-                    } catch (RuntimeException e) {
-                        logger.error("Error buying crypto for user {}: {}", username, e.getMessage(), e);
-                        String errorMessage = "Could not buy cryptocurrency. " + e.getMessage();
-                        try {
-                            return Mono.just("redirect:/portfolio?errorMessage=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString()));
-                        } catch (UnsupportedEncodingException ex) {
-                            return Mono.just("redirect:/portfolio?errorMessage=Error+during+purchase.");
-                        }
-                    }
+                    return portfolioService.buyCryptocurrency(user, cryptocurrencyId, cryptocurrencyName, cryptocurrencySymbol, currentPrice, amount)
+                        .then(Mono.fromCallable(() -> {
+                            logger.info("User {} successfully bought {} of {}", username, amount, cryptocurrencyId);
+                            String successMessage = "Successfully bought " + amount + " " + cryptocurrencySymbol.toUpperCase();
+                            try {
+                                return "redirect:/portfolio?successMessage=" + URLEncoder.encode(successMessage, StandardCharsets.UTF_8.toString());
+                            } catch (UnsupportedEncodingException e) {
+                                return "redirect:/portfolio?successMessage=Purchase+successful.";
+                            }
+                        }))
+                        .onErrorResume(PortfolioService.InsufficientFundsException.class, e -> {
+                            logger.warn("User {} has insufficient funds to buy {} of {}: {}", username, amount, cryptocurrencyId, e.getMessage());
+                            try {
+                                return Mono.just("redirect:/portfolio?errorMessage=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8.toString()));
+                            } catch (UnsupportedEncodingException ex) {
+                                return Mono.just("redirect:/portfolio?errorMessage=Insufficient+funds.");
+                            }
+                        })
+                        .onErrorResume(RuntimeException.class, e -> {
+                            logger.error("Error buying crypto for user {}: {}", username, e.getMessage(), e);
+                            String errorMessage = "Could not buy cryptocurrency. " + e.getMessage();
+                            try {
+                                return Mono.just("redirect:/portfolio?errorMessage=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString()));
+                            } catch (UnsupportedEncodingException ex) {
+                                return Mono.just("redirect:/portfolio?errorMessage=Error+during+purchase.");
+                            }
+                        });
                 });
         }).onErrorResume(e -> {
             logger.error("Unexpected error processing buyCrypto for user {}: {}", userDetails.getUsername(), e.getMessage(), e);

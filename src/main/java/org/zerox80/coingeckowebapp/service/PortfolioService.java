@@ -11,10 +11,14 @@ import org.zerox80.coingeckowebapp.repository.PortfolioRepository;
 import org.zerox80.coingeckowebapp.repository.UserRepository;
 import org.zerox80.coingeckowebapp.repository.PortfolioEntryRepository;
 import org.zerox80.coingeckowebapp.model.PortfolioEntry;
+import org.zerox80.coingeckowebapp.model.CryptoCurrency;
+import java.util.List;
+import java.util.Map;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 @Service
 public class PortfolioService {
@@ -24,6 +28,7 @@ public class PortfolioService {
     private final PortfolioRepository portfolioRepository;
     private final UserRepository userRepository;
     private final PortfolioEntryRepository portfolioEntryRepository;
+    private final CryptoService cryptoService;
 
     @Value("${portfolio.initial.balance:1000000.00}")
     private BigDecimal initialBalance;
@@ -37,10 +42,11 @@ public class PortfolioService {
         }
     }
 
-    public PortfolioService(PortfolioRepository portfolioRepository, UserRepository userRepository, PortfolioEntryRepository portfolioEntryRepository) {
+    public PortfolioService(PortfolioRepository portfolioRepository, UserRepository userRepository, PortfolioEntryRepository portfolioEntryRepository, CryptoService cryptoService) {
         this.portfolioRepository = portfolioRepository;
         this.userRepository = userRepository;
         this.portfolioEntryRepository = portfolioEntryRepository;
+        this.cryptoService = cryptoService;
     }
 
     @Transactional
@@ -71,40 +77,53 @@ public class PortfolioService {
     }
 
     @Transactional
-    public void buyCryptocurrency(User user, String cryptocurrencyId, String cryptocurrencyName, String cryptocurrencySymbol, double currentPriceDouble, BigDecimal amountToBuy) {
+    public Mono<Void> buyCryptocurrency(User user, String cryptocurrencyId, String cryptocurrencyName, String cryptocurrencySymbol, double currentPriceDouble, BigDecimal amountToBuy) {
         Portfolio portfolio = getPortfolioForUser(user);
 
-        BigDecimal currentPrice = BigDecimal.valueOf(currentPriceDouble);
-        BigDecimal totalCost = amountToBuy.multiply(currentPrice).setScale(portfolio.getBalance().scale(), RoundingMode.HALF_UP);
+        return cryptoService.getCurrentPrices(List.of(cryptocurrencyId), portfolio.getCurrency().toLowerCase())
+            .flatMap(pricesMap -> {
+                if (pricesMap == null || !pricesMap.containsKey(cryptocurrencyId) || !pricesMap.get(cryptocurrencyId).containsKey(portfolio.getCurrency().toLowerCase())) {
+                    return Mono.error(new RuntimeException("Could not fetch price for cryptocurrency: " + cryptocurrencyId + " in currency: " + portfolio.getCurrency()));
+                }
 
-        if (portfolio.getBalance().compareTo(totalCost) < 0) {
-            throw new InsufficientFundsException("Insufficient funds. You need " + totalCost + " " + portfolio.getCurrency() +
-                                               " but only have " + portfolio.getBalance() + " " + portfolio.getCurrency() + ".");
-        }
+                Double priceDouble = pricesMap.get(cryptocurrencyId).get(portfolio.getCurrency().toLowerCase());
+                if (priceDouble == null) {
+                    return Mono.error(new RuntimeException("Price for cryptocurrency: " + cryptocurrencyId + " was null."));
+                }
+                BigDecimal currentPrice = BigDecimal.valueOf(priceDouble);
+                
+                BigDecimal totalCost = amountToBuy.multiply(currentPrice).setScale(portfolio.getBalance().scale(), RoundingMode.HALF_UP);
 
-        portfolio.setBalance(portfolio.getBalance().subtract(totalCost));
+                if (portfolio.getBalance().compareTo(totalCost) < 0) {
+                    return Mono.error(new InsufficientFundsException("Insufficient funds. You need " + totalCost + " " + portfolio.getCurrency() +
+                                                       " but only have " + portfolio.getBalance() + " " + portfolio.getCurrency() + "."));
+                }
 
-        Optional<PortfolioEntry> existingEntryOpt = portfolioEntryRepository.findByPortfolioAndCryptocurrencyId(portfolio, cryptocurrencyId);
+                portfolio.setBalance(portfolio.getBalance().subtract(totalCost));
 
-        if (existingEntryOpt.isPresent()) {
-            PortfolioEntry existingEntry = existingEntryOpt.get();
-            BigDecimal oldAmount = existingEntry.getAmount();
-            BigDecimal oldAvgPrice = existingEntry.getAveragePurchasePrice();
-            
-            BigDecimal newAmount = oldAmount.add(amountToBuy);
-            BigDecimal newAvgPrice = (oldAmount.multiply(oldAvgPrice))
-                                     .add(amountToBuy.multiply(currentPrice))
-                                     .divide(newAmount, 4, RoundingMode.HALF_UP);
+                Optional<PortfolioEntry> existingEntryOpt = portfolioEntryRepository.findByPortfolioAndCryptocurrencyId(portfolio, cryptocurrencyId);
 
-            existingEntry.setAmount(newAmount);
-            existingEntry.setAveragePurchasePrice(newAvgPrice);
-        } else {
-            PortfolioEntry newEntry = new PortfolioEntry(portfolio, cryptocurrencyId, cryptocurrencySymbol, cryptocurrencyName, amountToBuy, currentPrice);
-            portfolio.getEntries().add(newEntry);
-        }
+                if (existingEntryOpt.isPresent()) {
+                    PortfolioEntry existingEntry = existingEntryOpt.get();
+                    BigDecimal oldAmount = existingEntry.getAmount();
+                    BigDecimal oldAvgPrice = existingEntry.getAveragePurchasePrice();
+                    
+                    BigDecimal newAmount = oldAmount.add(amountToBuy);
+                    BigDecimal newAvgPrice = (oldAmount.multiply(oldAvgPrice))
+                                             .add(amountToBuy.multiply(currentPrice))
+                                             .divide(newAmount, 4, RoundingMode.HALF_UP);
 
-        portfolioRepository.save(portfolio);
-        logger.info("Successfully processed purchase for user {}: {} of {} for {} {}", 
-            user.getUsername(), amountToBuy, cryptocurrencyId, totalCost, portfolio.getCurrency());
+                    existingEntry.setAmount(newAmount);
+                    existingEntry.setAveragePurchasePrice(newAvgPrice);
+                } else {
+                    PortfolioEntry newEntry = new PortfolioEntry(portfolio, cryptocurrencyId, cryptocurrencySymbol, cryptocurrencyName, amountToBuy, currentPrice);
+                    portfolio.getEntries().add(newEntry);
+                }
+
+                portfolioRepository.save(portfolio);
+                logger.info("Successfully processed purchase for user {}: {} of {} for {} {}", 
+                    user.getUsername(), amountToBuy, cryptocurrencyId, totalCost, portfolio.getCurrency());
+                return Mono.empty();
+            });
     }
 } 
