@@ -1,5 +1,6 @@
 # My Crypto Price Viewer Project
-![image](https://github.com/user-attachments/assets/4e398272-fae4-4e9e-af80-f84236f723b2)
+![image](https://github.com/user-attachments/assets/569d03fd-948f-44fc-a424-76c04e7f8b98)
+
 
 Hey there! 👋
 
